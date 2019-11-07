@@ -9,8 +9,10 @@ import json
 from bs4 import BeautifulSoup
 from selenium.webdriver import Chrome
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-def get_stock_technical_info(code_list, str_datefrom="2018-01-01"):
+
+def get_stock_technical_info(code_list, str_datefrom="2018-01-01", save_date=None):
     for code in code_list:
         url = 'http://finance.naver.com/item/sise_day.nhn?code={code}'.format(code=code)
         res = requests.get(url)
@@ -29,8 +31,6 @@ def get_stock_technical_info(code_list, str_datefrom="2018-01-01"):
         df = None
         for page in range(1, pg_last+1):
             _df = parse_page(code, page)
-            print(_df)
-
             _df_filtered = _df[_df['날짜'] > str_datefrom]
             if df is None:
                 df = _df_filtered
@@ -39,10 +39,14 @@ def get_stock_technical_info(code_list, str_datefrom="2018-01-01"):
             if len(_df) > len(_df_filtered):
                 break
         
-        path_dir = 'data/{}-crawling/tech/'.format(datetime.datetime.strftime(datetime.datetime.today(), '%Y-%m-%d'))
+        # 크롤한 데이터 저장
+        if not save_date:
+            path_dir = os.path.join(BASE_DIR, 'data/{}-crawling/tech/'.format(datetime.datetime.strftime(datetime.datetime.today(), '%Y-%m-%d')))
+        else:
+            path_dir = os.path.join(BASE_DIR, 'data/{}-crawling/tech/'.format(save_date))
         if not os.path.exists(path_dir):
             os.makedirs(path_dir)
-        path = os.path.join(path_dir, '{code}_{date_from}_{date_to}.csv'.format(code=code, date_from=str_datefrom, date_to=str_dateto))
+        path = os.path.join(path_dir, '{code}.csv'.format(code=code))
         df.to_csv(path, index=False)
 
 def parse_page(code, page):
@@ -57,7 +61,7 @@ def parse_page(code, page):
         traceback.print_exc()
     return None
 
-def get_stock_fundamental_info(code_list=[]):
+def get_stock_fundamental_info(code_list=[], save_date=None):
     try:
         browser  = Chrome("chromedriver")
         browser.maximize_window()
@@ -104,7 +108,6 @@ def get_stock_fundamental_info(code_list=[]):
                 tx = re.sub('\xa0','',tr0[i].find('th').text)
             else:
                 tx = tr0[i].find('th').text
-
             col.append(tx)
         
         #main text scrapy
@@ -122,15 +125,45 @@ def get_stock_fundamental_info(code_list=[]):
         
         td2 = list(map(list,zip(*td)))
         # 크롤한 데이터 저장
-        path_dir = 'data/{}-crawling/fund/'.format(datetime.datetime.strftime(datetime.datetime.today(), '%Y-%m-%d'))
+        if not save_date:
+            path_dir = os.path.join(BASE_DIR, 'data/{}-crawling/fund/'.format(datetime.datetime.strftime(datetime.datetime.today(), '%Y-%m-%d')))
+        else:
+            path_dir = os.path.join(BASE_DIR, 'data/{}-crawling/fund/'.format(save_date))
+            
         if not os.path.exists(path_dir):
             os.makedirs(path_dir)
-        pd.DataFrame(td2, columns = col,index = date).to_csv(os.path.join(path_dir, "{code}.csv".format(code=code)), index=False)
+        pd.DataFrame(td2, columns = col,index = date).to_csv(os.path.join(path_dir, "{code}.csv".format(code=code)), index=True, index_label="date")
+
+def load_data(code_list, save_date):
+    df = pd.DataFrame()
+    for code in code_list:
+        # Load fundermental info
+        path_dir = os.path.join(BASE_DIR, 'data/{}-crawling/fund/'.format(save_date))
+        if os.path.exists(os.path.join(path_dir, "{code}.csv".format(code=code))):
+            print("Success to load fundmental #{code} stock info...".format(code=code))
+            df_ = pd.read_csv(os.path.join(path_dir, "{code}.csv".format(code=code)), index_col="date")
+            result = pd.concat([df, df_], axis=1, sort=False)
+            print(result)
+        # Load technical info
+        path_dir = os.path.join(BASE_DIR, 'data/{}-crawling/tech/'.format(save_date))
+        if os.path.exists(os.path.join(path_dir, "{code}.csv".format(code=code))):
+            print("Success to load technical #{code} stock info...".format(code=code))
+            df_ = pd.read_csv(os.path.join(path_dir, "{code}.csv".format(code=code)), index_col="날짜")
+            result = pd.concat([df, df_], axis=1)
+            print(result)
+            # df['tech'] = df_
+        else:
+            print("Fail to load technical #{code} stock info...".format(code=code))
+            continue
+    return df
+
 
 if __name__ == "__main__":
     # code = '035420'  # NAVER
     # code = '006800'  # 미래에셋대우
     # code = '005930'  # 삼성전자
 
-    get_stock_technical_info(code_list=["035420", "006800", "005930"], str_datefrom="2018-01-01")
-    get_stock_fundamental_info(["035420", "006800"])
+    # get_stock_technical_info(code_list=["035420", "006800", "005930"], str_datefrom="2018-01-01")
+    # get_stock_fundamental_info(["035420", "006800", "005930"])
+    df = load_data(code_list=["035420"], save_date="2019-11-07")
+    print (df)
