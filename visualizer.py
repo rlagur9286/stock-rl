@@ -60,7 +60,6 @@ class Visualizer:
         styles = ['.r', '.b']
         for action, style in zip(action_list, styles):
             # 정책 신경망의 출력을 빨간색, 파란색 점으로 그리기
-            print(outvals)
             self.axes[2].plot(x, outvals[:, action], style)
 
         # 차트 4. 포트폴리오 가치

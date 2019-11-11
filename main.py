@@ -28,8 +28,8 @@ if __name__ == "__main__":
         training_data = data_processor.build_training_data(prep_data)
 
         # 기간 필터링
-        training_data = training_data[(training_data['date'] >= '2018-01-01') & (training_data['date'] <= '2019-12-31')]
-        training_data = training_data.dropna()
+        training_data = training_data[(training_data['date'] >= '2018.01.01') & (training_data['date'] <= '2019.12.31')]
+        # training_data = training_data.dropna()
 
         # 차트 데이터 분리
         features_chart_data = ['date', '시가', '고가', '저가', '종가', '거래량']

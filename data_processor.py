@@ -142,7 +142,6 @@ def load_data(code_list, save_date):
         if os.path.exists(os.path.join(path_dir, "{code}.csv".format(code=code))):
             print("Success to load fundmental #{code} stock info...".format(code=code))
             fund_df = pd.read_csv(os.path.join(path_dir, "{code}.csv".format(code=code)), index_col="date")
-            fund_df['date'] = fund_df.index.tolist()
             fund_df['year'] = fund_df.index.tolist()
             fund_df['year'] = fund_df['year'].apply(lambda x: x.split("/")[0])
 
@@ -151,6 +150,7 @@ def load_data(code_list, save_date):
         if os.path.exists(os.path.join(path_dir, "{code}.csv".format(code=code))):
             print("Success to load technical #{code} stock info...".format(code=code))
             tech_df = pd.read_csv(os.path.join(path_dir, "{code}.csv".format(code=code)), index_col="날짜")
+            tech_df['date'] = tech_df.index.tolist()
             tech_df['year'] = tech_df.index.tolist()
             tech_df['year'] = tech_df['year'].apply(lambda x: x.split("/")[0])
             if not fund_df.empty:
