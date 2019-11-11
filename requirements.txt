@@ -1,0 +1,8 @@
+beautifulsoup4
+requests
+finance-datareader
+numpy
+pandas
+keras
+selenium
+tensorflow

@@ -2,7 +2,8 @@ import os
 import locale
 import logging
 import numpy as np
-import settings
+
+from common.util import BASE_DIR
 from environment import Environment
 from agent import Agent
 from policy_network import PolicyNetwork
@@ -56,9 +57,7 @@ class PolicyLearner:
         self.visualizer.prepare(self.environment.chart_data)
 
         # 가시화 결과 저장할 폴더 준비
-        epoch_summary_dir = os.path.join(
-            settings.BASE_DIR, 'epoch_summary/%s/epoch_summary_%s' % (
-                self.stock_code, settings.timestr))
+        epoch_summary_dir = os.path.join(BASE_DIR, 'epoch_summary/%s/epoch_summary_%s' % (self.stock_code, timestr))
         if not os.path.isdir(epoch_summary_dir):
             os.makedirs(epoch_summary_dir)
 
