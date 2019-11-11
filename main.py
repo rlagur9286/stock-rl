@@ -13,9 +13,9 @@ if __name__ == "__main__":
     # get stock info
     ###########################################
     # 기술적 분석 크롤링
-    data_processor.get_stock_technical_info(code_list=KOSPI, str_datefrom="2018-01-01", save_date="2019-11-07")
+    # data_processor.get_stock_technical_info(code_list=KOSPI, str_datefrom="2018-01-01", save_date="2019-11-07")
     # 기본적 분석 크롤링
-    data_processor.get_stock_fundamental_info(code_list=KOSPI, save_date="2019-11-07")
+    # data_processor.get_stock_fundamental_info(code_list=KOSPI, save_date="2019-11-07")
 
     ###########################################
     # Load 기술, 기본 분석 데이터
@@ -28,11 +28,11 @@ if __name__ == "__main__":
         training_data = data_processor.build_training_data(prep_data)
 
         # 기간 필터링
-        training_data = training_data[(training_data['날짜'] >= '2017-01-01') & (training_data['날짜'] <= '2017-12-31')]
+        training_data = training_data[(training_data['date'] >= '2017-01-01') & (training_data['date'] <= '2017-12-31')]
         training_data = training_data.dropna()
 
         # 차트 데이터 분리
-        features_chart_data = ['날짜', '시가', '고가', '저가', '종가', '거래량']
+        features_chart_data = ['date', '시가', '고가', '저가', '종가', '거래량']
         chart_data = training_data[features_chart_data]
 
         # 학습 데이터 분리

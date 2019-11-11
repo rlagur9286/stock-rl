@@ -7,3 +7,4 @@ keras
 selenium
 tensorflow
 matplotlib
+mpl_finance

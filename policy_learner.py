@@ -2,6 +2,7 @@ import os
 import locale
 import logging
 import numpy as np
+from common import util
 
 from common.util import BASE_DIR
 from environment import Environment
@@ -57,7 +58,7 @@ class PolicyLearner:
         self.visualizer.prepare(self.environment.chart_data)
 
         # 가시화 결과 저장할 폴더 준비
-        epoch_summary_dir = os.path.join(BASE_DIR, 'epoch_summary/%s/epoch_summary_%s' % (self.stock_code, timestr))
+        epoch_summary_dir = os.path.join(BASE_DIR, 'epoch_summary/%s/epoch_summary_%s' % (self.stock_code, util.timestr))
         if not os.path.isdir(epoch_summary_dir):
             os.makedirs(epoch_summary_dir)
 
@@ -173,8 +174,7 @@ class PolicyLearner:
                 initial_balance=self.agent.initial_balance, pvs=memory_pv
             )
             self.visualizer.save(os.path.join(
-                epoch_summary_dir, 'epoch_summary_%s_%s.png' % (
-                    settings.timestr, epoch_str)))
+                epoch_summary_dir, 'epoch_summary_%s_%s.png' % (util.timestr, epoch_str)))
 
             # 에포크 관련 정보 로그 기록
             if pos_learning_cnt + neg_learning_cnt > 0:
