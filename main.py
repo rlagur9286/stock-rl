@@ -28,11 +28,11 @@ if __name__ == "__main__":
         training_data = data_processor.build_training_data(prep_data)
 
         # 기간 필터링
-        training_data = training_data[(training_data['date'] >= '2017-01-01') & (training_data['date'] <= '2017-12-31')]
+        training_data = training_data[(training_data['날짜'] >= '2017-01-01') & (training_data['날짜'] <= '2017-12-31')]
         training_data = training_data.dropna()
 
         # 차트 데이터 분리
-        features_chart_data = ['date', '시가', '고가', '저가', '종가', '거래량']
+        features_chart_data = ['날짜', '시가', '고가', '저가', '종가', '거래량']
         chart_data = training_data[features_chart_data]
 
         # 학습 데이터 분리
@@ -49,4 +49,4 @@ if __name__ == "__main__":
 
         # 강화학습 시작
         policy_learner = PolicyLearner(stock_code=stock_code, chart_data=chart_data, training_data=training_data, min_trading_unit=1, max_trading_unit=2, delayed_reward_threshold=.2, lr=.001)
-        policy_learner.fit(balance=10000000, num_epoches=1000, discount_factor=0, start_epsilon=.5)
+        policy_learner.fit(balance=10000000, num_epoches=10, discount_factor=0, start_epsilon=.5)
