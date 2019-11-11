@@ -1,6 +1,7 @@
 import requests
 import traceback
 import pandas as pd
+import numpy as np
 import datetime
 import os
 import re
@@ -141,29 +142,93 @@ def load_data(code_list, save_date):
         path_dir = os.path.join(BASE_DIR, 'data/{}-crawling/fund/'.format(save_date))
         if os.path.exists(os.path.join(path_dir, "{code}.csv".format(code=code))):
             print("Success to load fundmental #{code} stock info...".format(code=code))
-            df_ = pd.read_csv(os.path.join(path_dir, "{code}.csv".format(code=code)), index_col="date")
-            result = pd.concat([df, df_], axis=1, sort=False)
-            print(result)
+            fund_df = pd.read_csv(os.path.join(path_dir, "{code}.csv".format(code=code)), index_col="date")
+            fund_df['year'] = fund_df.index.tolist()
+            fund_df['year'] = fund_df['year'].apply(lambda x: x.split("/")[0])
+
         # Load technical info
         path_dir = os.path.join(BASE_DIR, 'data/{}-crawling/tech/'.format(save_date))
         if os.path.exists(os.path.join(path_dir, "{code}.csv".format(code=code))):
             print("Success to load technical #{code} stock info...".format(code=code))
-            df_ = pd.read_csv(os.path.join(path_dir, "{code}.csv".format(code=code)), index_col="날짜")
-            result = pd.concat([df, df_], axis=1)
-            print(result)
-            # df['tech'] = df_
+            tech_df = pd.read_csv(os.path.join(path_dir, "{code}.csv".format(code=code)), index_col="날짜")
+            tech_df['year'] = tech_df.index.tolist()
+            tech_df['year'] = tech_df['year'].apply(lambda x: x.split("/")[0])
+            if not fund_df.empty:
+                df_ = tech_df.merge(fund_df, on="year", how="left")
         else:
             print("Fail to load technical #{code} stock info...".format(code=code))
             continue
+        df_['code'] = code
+        df = pd.concat([df, df_])
     return df
+
+def preprocess(data):
+    prep_data = data
+    windows = [5, 10, 20, 60, 120]
+    for window in windows:
+        prep_data['종가_ma{}'.format(window)] = prep_data['종가'].rolling(window).mean()
+        prep_data['거래량_ma{}'.format(window)] = (prep_data['거래량'].rolling(window).mean())
+    return prep_data
+
+def build_training_data(prep_data):
+    training_data = prep_data
+
+    training_data['시가_last종가_비율'] = np.zeros(len(training_data))
+    training_data.loc[1:, '시가_last종가_비율'] = (training_data['시가'][1:].values - training_data['종가'][:-1].values) / training_data['종가'][:-1].values
+    training_data['고가_종가_비율'] = (training_data['고가'].values - training_data['종가'].values) / training_data['종가'].values
+    training_data['저가_종가_비율'] = (training_data['저가'].values - training_data['종가'].values) / training_data['종가'].values
+    training_data['종가_last종가_비율'] = np.zeros(len(training_data))
+    training_data.loc[1:, '종가_last종가_비율'] = (training_data['종가'][1:].values - training_data['종가'][:-1].values) / training_data['종가'][:-1].values
+    training_data['거래량_last거래량_비율'] = np.zeros(len(training_data))
+    training_data.loc[1:, '거래량_last거래량_비율'] = (training_data['거래량'][1:].values - training_data['거래량'][:-1].values) / training_data['거래량'][:-1].replace(to_replace=0, method='ffill').replace(to_replace=0, method='bfill').values
+
+    windows = [5, 10, 20, 60, 120]
+    for window in windows:
+        training_data['종가_ma%d_비율' % window] = \
+            (training_data['종가'] - training_data['종가_ma%d' % window]) / \
+            training_data['종가_ma%d' % window]
+        training_data['거래량_ma%d_비율' % window] = \
+            (training_data['거래량'] - training_data['거래량_ma%d' % window]) / \
+            training_data['거래량_ma%d' % window]
+
+    return training_data
 
 
 if __name__ == "__main__":
     # code = '035420'  # NAVER
     # code = '006800'  # 미래에셋대우
     # code = '005930'  # 삼성전자
+    code_list = ["035420", "006800", "005930"]
 
     # get_stock_technical_info(code_list=["035420", "006800", "005930"], str_datefrom="2018-01-01")
     # get_stock_fundamental_info(["035420", "006800", "005930"])
-    df = load_data(code_list=["035420"], save_date="2019-11-07")
-    print (df)
+    df = load_data(code_list=["035420", "006800", "005930"], save_date="2019-11-07")
+    for stock_code in code_list:
+        code_data = df[df['code'] == stock_code]
+        prep_data = preprocess(code_data)
+        training_data = build_training_data(prep_data)
+        
+        # 기간 필터링
+        training_data = training_data[(training_data['date'] >= '2017-01-01') & (training_data['date'] <= '2017-12-31')]
+        training_data = training_data.dropna()
+
+        # 차트 데이터 분리
+        features_chart_data = ['date', '시가', '고가', '저가', '종가', '거래량']
+        chart_data = training_data[features_chart_data]    
+
+        # 학습 데이터 분리
+        features_training_data = [
+            '시가_last종가_비율', '고가_종가_비율', '저가_종가_비율',
+            '종가_last종가_비율', '거래량_last거래량_비율',
+            '종가_ma5_비율', '거래량_ma5_비율',
+            '종가_ma10_비율', '거래량_ma10_비율',
+            '종가_ma20_비율', '거래량_ma20_비율',
+            '종가_ma60_비율', '거래량_ma60_비율',
+            '종가_ma120_비율', '거래량_ma120_비율'
+        ]
+
+        training_data = training_data[features_training_data]
+
+        # 강화학습 시작
+        policy_learner = PolicyLearner(stock_code=stock_code, chart_data=chart_data, training_data=training_data, min_trading_unit=1, max_trading_unit=2, delayed_reward_threshold=.2, lr=.001)
+        policy_learner.fit(balance=10000000, num_epoches=1000, discount_factor=0, start_epsilon=.5)
