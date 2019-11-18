@@ -12,8 +12,7 @@ class PolicyNetwork:
         # LSTM 신경망
         self.model = Sequential() 
 
-        self.model.add(LSTM(256, input_shape=(1, input_dim),
-                            return_sequences=True, stateful=False, dropout=0.5))
+        self.model.add(LSTM(256, input_shape=(1, input_dim), return_sequences=True, stateful=False, dropout=0.5))
         self.model.add(BatchNormalization())
         self.model.add(LSTM(256, return_sequences=True, stateful=False, dropout=0.5))
         self.model.add(BatchNormalization())
