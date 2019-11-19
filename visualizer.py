@@ -55,19 +55,19 @@ class Visualizer:
                 color = 'r'  # 매수면 빨간색
             elif outval.argmax() == 1:
                 color = 'b'  # 매도면 파란색
-            # 행동을 빨간색 또는 파란색 배경으로 그리기
+            elif outval.argmax() == 2:
+                color = 'g'  # 홀드면 초록색
+            # 행동을 빨간색, 파랑색 또는 초록색 배경으로 그리기
             self.axes[2].axvline(idx, color=color, alpha=0.1)
-        styles = ['.r', '.b']
+        styles = ['.r', '.b', '.g']
         for action, style in zip(action_list, styles):
             # 정책 신경망의 출력을 빨간색, 파란색 점으로 그리기
             self.axes[2].plot(x, outvals[:, action], style)
 
         # 차트 4. 포트폴리오 가치
         self.axes[3].axhline(initial_balance, linestyle='-', color='gray')
-        self.axes[3].fill_between(x, pvs, pvs_base,
-                                  where=pvs > pvs_base, facecolor='r', alpha=0.1)
-        self.axes[3].fill_between(x, pvs, pvs_base,
-                                  where=pvs < pvs_base, facecolor='b', alpha=0.1)
+        self.axes[3].fill_between(x, pvs, pvs_base, where=pvs > pvs_base, facecolor='r', alpha=0.1)
+        self.axes[3].fill_between(x, pvs, pvs_base, where=pvs < pvs_base, facecolor='b', alpha=0.1)
         self.axes[3].plot(x, pvs, '-k')
         for learning_idx, delayed_reward in learning:
             # 학습 위치를 초록색으로 그리기

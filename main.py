@@ -19,9 +19,9 @@ if __name__ == "__main__":
     ###########################################
     # 기술적 분석 크롤링
     # data_processor.get_stock_technical_info(code_list=KOSPI, str_datefrom="2018-01-01", save_date="2019-11-07") # 네이버는 수정주가가 아님... 손절
-    data_processor.get_stock_technical_info(code_list=KOSPI, num_days=1000, save_date="2019-11-17")
+    # data_processor.get_stock_technical_info(code_list=KOSPI, num_days=1000, save_date="2019-11-17")
     # 기본적 분석 크롤링
-    data_processor.get_stock_fundamental_info(code_list=KOSPI, save_date="2019-11-17")
+    # data_processor.get_stock_fundamental_info(code_list=KOSPI, save_date="2019-11-17")
 
     ###########################################
     # Load 기술, 기본 분석 데이터
@@ -66,7 +66,7 @@ if __name__ == "__main__":
         training_data = training_data.dropna()
 
         # # 강화학습 시작
-        policy_learner = PolicyLearner(stock_code=stock_code, chart_data=chart_data, training_data=training_data, min_trading_unit=1, max_trading_unit=5, delayed_reward_threshold=.05, lr=.01)
+        policy_learner = PolicyLearner(stock_code=stock_code, chart_data=chart_data, training_data=training_data, min_trading_unit=1, max_trading_unit=5, delayed_reward_threshold=.05, lr=.001)
         policy_learner.fit(balance=10000000, num_epoches=500, discount_factor=0, start_epsilon=.25)
 
         # 정책 신경망을 파일로 저장

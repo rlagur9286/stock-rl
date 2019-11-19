@@ -32,8 +32,7 @@ class PolicyLearner:
         self.training_data_idx = -1
         # 정책 신경망; 입력 크기 = 학습 데이터의 크기 + 에이전트 상태 크기
         self.num_features = self.training_data.shape[1] + self.agent.STATE_DIM
-        self.policy_network = PolicyNetwork(
-            input_dim=self.num_features, output_dim=self.agent.NUM_ACTIONS, lr=lr)
+        self.policy_network = PolicyNetwork(input_dim=self.num_features, output_dim=self.agent.NUM_ACTIONS, lr=lr)
         self.visualizer = Visualizer()  # 가시화 모듈
 
     def reset(self):
@@ -112,8 +111,7 @@ class PolicyLearner:
                     break
 
                 # 정책 신경망 또는 탐험에 의한 행동 결정
-                action, confidence, exploration = self.agent.decide_action(
-                    self.policy_network, self.sample, epsilon)
+                action, confidence, exploration = self.agent.decide_action(self.policy_network, self.sample, epsilon)
 
                 # 결정한 행동을 수행하고 즉시 보상과 지연 보상 획득
                 immediate_reward, delayed_reward = self.agent.act(action, confidence)
@@ -150,8 +148,7 @@ class PolicyLearner:
                     # 배치 학습 데이터 크기
                     batch_size = min(batch_size, max_memory)
                     # 배치 학습 데이터 생성
-                    x, y = self._get_batch(
-                        memory, batch_size, discount_factor, delayed_reward)
+                    x, y = self._get_batch(memory, batch_size, discount_factor, delayed_reward)
                     if len(x) > 0:
                         if delayed_reward > 0:
                             pos_learning_cnt += 1
@@ -196,15 +193,13 @@ class PolicyLearner:
                 epoch_win_cnt += 1
 
         # 학습 관련 정보 로그 기록
-        logging.info("Max PV: %s, \t # Win: %d" % (
-            locale.currency(max_portfolio_value, grouping=True), epoch_win_cnt))
+        logging.info("Max PV: %s, \t # Win: %d" % (locale.currency(max_portfolio_value, grouping=True), epoch_win_cnt))
 
     def _get_batch(self, memory, batch_size, discount_factor, delayed_reward):
         x = np.zeros((batch_size, 1, self.num_features))
         y = np.full((batch_size, self.agent.NUM_ACTIONS), 0.5)
 
-        for i, (sample, action, reward) in enumerate(
-                reversed(memory[-batch_size:])):
+        for i, (sample, action, reward) in enumerate(reversed(memory[-batch_size:])):
             x[i] = np.array(sample).reshape((-1, 1, self.num_features))
             y[i, action] = (delayed_reward + 1) / 2
             if discount_factor > 0:
