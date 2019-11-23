@@ -44,8 +44,8 @@ if __name__ == "__main__":
         training_data = data_processor.build_training_data(prep_data)
 
         # 기간 필터링
-        testing_data = training_data[(training_data['date'] >= '2019-01-01') & (training_data['date'] <= '2019-12-31')]
-        training_data = training_data[(training_data['date'] >= '2016-01-01') & (training_data['date'] <= '2018-12-31')]
+        testing_data = training_data[(training_data['date'] >= '2017-01-01') & (training_data['date'] <= '2017-12-31')]
+        training_data = training_data[(training_data['date'] >= '2016-01-01') & (training_data['date'] <= '2016-12-31')]
         # training_data = training_data.dropna()
 
         # 차트 데이터 분리
@@ -54,20 +54,23 @@ if __name__ == "__main__":
 
         # 학습 데이터 분리
         features_training_data = [
+            # 기술적 분석
             'open_lastclose_ratio', 'high_close_ratio', 'low_close_ratio',
             'close_lastclose_ratio', 'volume_lastvolume_ratio',
             'close_ma5_ratio', 'volume_ma5_ratio',
             'close_ma10_ratio', 'volume_ma10_ratio',
             'close_ma20_ratio', 'volume_ma20_ratio',
             'close_ma60_ratio', 'volume_ma60_ratio',
-            'close_ma120_ratio', 'volume_ma120_ratio'
+            'close_ma120_ratio', 'volume_ma120_ratio',
+            # 기본적 자질 분석 ( 순이익률, 자기자본순이익률, 총자본순이익률, 주가순자산비율, 주가수익률 )
+            'NPM', 'ROE', 'ROA', 'PER', 'PBR'
         ]
         training_data = training_data[features_training_data]
         training_data = training_data.dropna()
 
-        # # 강화학습 시작
+        # 강화학습 시작
         policy_learner = PolicyLearner(stock_code=stock_code, chart_data=chart_data, training_data=training_data, min_trading_unit=1, max_trading_unit=5, delayed_reward_threshold=.05, lr=.001)
-        policy_learner.fit(balance=10000000, num_epoches=500, discount_factor=0, start_epsilon=.25)
+        policy_learner.fit(balance=10000000, num_epoches=1000, discount_factor=0, start_epsilon=.50)
 
         # 정책 신경망을 파일로 저장
         model_dir = os.path.join(util.BASE_DIR, 'models/%s' % stock_code)

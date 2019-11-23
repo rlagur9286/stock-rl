@@ -1,7 +1,7 @@
 import numpy as np
 from keras.models import Sequential
 from keras.layers import Activation, LSTM, Dense, BatchNormalization
-from keras.optimizers import sgd
+from keras.optimizers import adam
 
 
 class PolicyNetwork:
@@ -19,9 +19,9 @@ class PolicyNetwork:
         self.model.add(LSTM(256, return_sequences=False, stateful=False, dropout=0.5))
         self.model.add(BatchNormalization())
         self.model.add(Dense(output_dim))
-        self.model.add(Activation('sigmoid'))
+        self.model.add(Activation('tanh'))
 
-        self.model.compile(optimizer=sgd(lr=lr), loss='mse')
+        self.model.compile(optimizer=adam(lr=lr), loss='mse')
         self.prob = None
 
     def reset(self):

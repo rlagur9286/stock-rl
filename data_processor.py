@@ -7,27 +7,18 @@ import os
 import re
 import json
 import FinanceDataReader as fdr
+from common.util import headers
 
 from bs4 import BeautifulSoup
 from selenium.webdriver import Chrome
 from common.util import BASE_DIR
 
+
 def get_stock_technical_info(code_list, num_days, save_date=None):
     for code in code_list:
         url = 'http://finance.daum.net/api/charts/A{code}/days?limit={num_days}&adjusted=true'.format(code=code, num_days=num_days)
-        headers = {
-                    'Accept': 'application/json, text/plain, */*',
-                    'Accept-Encoding': 'gzip, deflate',
-                    'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
-                    'Connection': 'keep-alive',
-                    'Cookie': 'GS_font_Name_no=0; GS_font_size=16; _ga=GA1.3.937989519.1493034297; webid=bb619e03ecbf4672b8d38a3fcedc3f8c; _ga=GA1.2.937989519.1493034297; _gid=GA1.2.215330840.1541556419; KAKAO_STOCK_RECENT=[%22A069500%22]; recentMenus=[{%22destination%22:%22chart%22%2C%22title%22:%22%EC%B0%A8%ED%8A%B8%22}%2C{%22destination%22:%22current%22%2C%22title%22:%22%ED%98%84%EC%9E%AC%EA%B0%80%22}]; TIARA=C-Tax5zAJ3L1CwQFDxYNxe-9yt4xuvAcw3IjfDg6hlCbJ_KXLZZhwEPhrMuSc5Rv1oty5obaYZzBQS5Du9ne5x7XZds-vHVF; webid_sync=1541565778037; _gat_gtag_UA_128578811_1=1; _dfs=VFlXMkVwUGJENlVvc1B3V2NaV1pFdHhpNTVZdnRZTWFZQWZwTzBPYWRxMFNVL3VrODRLY1VlbXI0dHhBZlJzcE03SS9Vblh0U2p2L2V2b3hQbU5mNlE9PS0tcGI2aXQrZ21qY0hFbzJ0S1hkaEhrZz09--6eba3111e6ac36d893bbc58439d2a3e0304c7cf3',
-                    'Host': 'finance.daum.net',
-                    'If-None-Match': 'W/"23501689faaaf24452ece4a039a904fd"',
-                    'Referer': 'http://finance.daum.net/quotes/A069500',
-                    'User-Agent':'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36'
-                    }
         headers['Referer'] = 'http://finance.daum.net/quotes/A{code}'.format(code=code)
-        r = requests.get(url, headers = headers)
+        r = requests.get(url, headers=headers)
         
         columns = ["date", "openingPrice", "tradePrice", "highPrice", "lowPrice", "changePrice", "candleAccTradeVolume"]
         data = json.loads(r.text)
@@ -46,6 +37,7 @@ def get_stock_technical_info(code_list, num_days, save_date=None):
         path = os.path.join(path_dir, '{code}.csv'.format(code=code))
         df.to_csv(path, index=False)
     return df
+
 
 def get_stock_technical_info_naver(code_list, str_datefrom="2018-01-01", save_date=None):
     for code in code_list:
@@ -84,6 +76,7 @@ def get_stock_technical_info_naver(code_list, str_datefrom="2018-01-01", save_da
         path = os.path.join(path_dir, '{code}.csv'.format(code=code))
         df.to_csv(path, index=False)
 
+
 def parse_page(code, page):
     try:
         url = 'http://finance.naver.com/item/sise_day.nhn?code={code}&page={page}'.format(code=code, page=page)
@@ -96,7 +89,30 @@ def parse_page(code, page):
         traceback.print_exc()
     return None
 
-def get_stock_fundamental_info(code_list=[], save_date=None):
+
+def get_stock_foreign_gov_info(code_list, limit_num=100, save_date=None):
+    for code in code_list:
+        url = 'https://finance.daum.net/api/investor/days?page=1&perPage={limit_num}&symbolCode=A{code}&pagination=true'.format(code=code, limit_num=limit_num)
+        headers['Referer'] = 'http://finance.daum.net/quotes/A{code}'.format(code=code)
+        r = requests.get(url, headers=headers)
+        columns = ['date', 'foreignOwnShares', 'foreignOwnSharesRate', 'foreignStraightPurchaseVolume', 'institutionStraightPurchaseVolume', 'institutionCumulativeStraightPurchaseVolume']
+        data = json.loads(r.text)
+        df = pd.DataFrame(data['data'])
+        df.index = pd.to_datetime(df['date'])
+        df = df[columns]
+
+        # 크롤한 데이터 저장
+        if not save_date:
+            path_dir = os.path.join(BASE_DIR, 'data/{}-crawling/fereign_institution/'.format(datetime.datetime.strftime(datetime.datetime.today(), '%Y-%m-%d')))
+        else:
+            path_dir = os.path.join(BASE_DIR, 'data/{}-crawling/fereign_institution/'.format(save_date))
+        if not os.path.exists(path_dir):
+            os.makedirs(path_dir)
+        path = os.path.join(path_dir, '{code}.csv'.format(code=code))
+        df.to_csv(path, index=False)
+
+
+def get_stock_fundamental_info(code_list, save_date=None):
     try:
         browser  = Chrome("chromedriver")
         browser.maximize_window()
@@ -169,6 +185,7 @@ def get_stock_fundamental_info(code_list=[], save_date=None):
             os.makedirs(path_dir)
         pd.DataFrame(td2, columns = col,index = date).to_csv(os.path.join(path_dir, "{code}.csv".format(code=code)), index=True, index_label="date")
 
+
 def load_data(code_list, save_date):
     df = pd.DataFrame()
     for code in code_list:
@@ -179,6 +196,7 @@ def load_data(code_list, save_date):
             fund_df = pd.read_csv(os.path.join(path_dir, "{code}.csv".format(code=code)), index_col="date")
             fund_df['year'] = fund_df.index.tolist()
             fund_df['year'] = fund_df['year'].apply(lambda x: x.split("/")[0])
+            fund_df = fund_df.rename(columns = {'PER(배)' : 'PER', 'PBR(배)': 'PBR', '순이익률': 'NPM', 'ROE(%)': 'ROE', 'ROA(%)': 'ROA'})
 
         # Load technical info
         path_dir = os.path.join(BASE_DIR, 'data/{}-crawling/tech/'.format(save_date))
@@ -196,6 +214,7 @@ def load_data(code_list, save_date):
         df = pd.concat([df, df_])
     return df
 
+
 def preprocess(data):
     prep_data = data
     windows = [5, 10, 20, 60, 120]
@@ -203,6 +222,7 @@ def preprocess(data):
         prep_data['close_ma{}'.format(window)] = prep_data['close'].rolling(window).mean()
         prep_data['volume_ma{}'.format(window)] = (prep_data['volume'].rolling(window).mean())
     return prep_data
+
 
 def build_training_data(prep_data):
     training_data = prep_data
@@ -226,6 +246,7 @@ def build_training_data(prep_data):
             training_data['volume_ma%d' % window]
 
     return training_data
+
 
 def get_kosdaq_technical_info(code_list, str_datefrom="2018-01-01", save_date=None):
 
@@ -258,11 +279,19 @@ def get_kosdaq_technical_info(code_list, str_datefrom="2018-01-01", save_date=No
         path = os.path.join(path_dir, '{code}.csv'.format(code=item['Symbol']))
         df.to_csv(path, index=False)
 
+
 if __name__ == "__main__":
     KOSPI = ["035420", "006800", "005930"]
+    # crawl data
     # get_stock_technical_info(code_list=KOSPI, num_days=480, save_date="2019-11-14")
     pd.set_option('display.max_rows', 500)
     pd.set_option('display.max_columns', 500)
     pd.set_option('display.width', 1000)
-    df = load_data(code_list=["006800"], save_date="2019-11-14")
-    print(df)
+    # load data
+    # df = load_data(code_list=["006800"], save_date="2019-11-17")
+    # print(df)
+    # index_cd = 'KPI200'
+    # historical_prices = dict()
+    # historical_index_naver(index_cd, '2018-4-1', '2018-4-4')
+    # print(historical_prices)
+    get_stock_foreign_gov_info(code_list=['035420'])
