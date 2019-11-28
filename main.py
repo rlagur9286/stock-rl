@@ -22,7 +22,8 @@ if __name__ == "__main__":
     # data_processor.get_stock_technical_info(code_list=KOSPI, num_days=1000, save_date="2019-11-17")
     # 기본적 분석 크롤링
     # data_processor.get_stock_fundamental_info(code_list=KOSPI, save_date="2019-11-17")
-
+    # 외인, 기관 분석 크롤링
+    # data_processor.get_stock_foreign_gov_info(code_list=KOSPI, num=1000, save_date="2019-11-17")
     ###########################################
     # Load 기술, 기본 분석 데이터
     ###########################################
@@ -63,13 +64,21 @@ if __name__ == "__main__":
             'close_ma60_ratio', 'volume_ma60_ratio',
             'close_ma120_ratio', 'volume_ma120_ratio',
             # 기본적 자질 분석 ( 순이익률, 자기자본순이익률, 총자본순이익률, 주가순자산비율, 주가수익률 )
-            'NPM', 'ROE', 'ROA', 'PER', 'PBR'
+            'NPM', 'ROE', 'ROA', 'PER', 'PBR',
+            # 외인, 기관 자질 분석 (외인보유주식수, 외인지분율, 외인순매수량, 기관순매수량, 기관누적순매수량)
+            'foreignOwnSharesRate_ma5', 'foreignStraightPurchaseVolume_ma5', 'institutionStraightPurchaseVolume_ma5',
+            'foreignOwnSharesRate_ma10', 'foreignStraightPurchaseVolume_ma10', 'institutionStraightPurchaseVolume_ma10',
+            'foreignOwnSharesRate_ma20', 'foreignStraightPurchaseVolume_ma20', 'institutionStraightPurchaseVolume_ma20',
+            'foreignOwnSharesRate_ma60', 'foreignStraightPurchaseVolume_ma60', 'institutionStraightPurchaseVolume_ma60',
+            'foreignOwnSharesRate_ma120', 'foreignStraightPurchaseVolume_ma120', 'institutionStraightPurchaseVolume_ma120'
         ]
+        print(training_data.columns)
+
         training_data = training_data[features_training_data]
         training_data = training_data.dropna()
 
         # 강화학습 시작
-        policy_learner = PolicyLearner(stock_code=stock_code, chart_data=chart_data, training_data=training_data, min_trading_unit=1, max_trading_unit=5, delayed_reward_threshold=.05, lr=.001)
+        policy_learner = PolicyLearner(stock_code=stock_code, chart_data=chart_data, training_data=training_data, min_trading_unit=1, max_trading_unit=5, delayed_reward_threshold=.1, lr=.001)
         policy_learner.fit(balance=10000000, num_epoches=1000, discount_factor=0, start_epsilon=.50)
 
         # 정책 신경망을 파일로 저장
@@ -83,5 +92,5 @@ if __name__ == "__main__":
         model_ver = timestr
         chart_data = testing_data[features_chart_data]
         testing_data = testing_data[features_training_data]
-        policy_learner = PolicyLearner(stock_code=stock_code, chart_data=chart_data, training_data=testing_data, min_trading_unit=1, max_trading_unit=5)
+        policy_learner = PolicyLearner(stock_code=stock_code, chart_data=chart_data, training_data=testing_data, min_trading_unit=1, max_trading_unit=3)
         policy_learner.trade(balance=10000000, model_path=os.path.join(util.BASE_DIR, 'models/{}/model_{}.h5'.format(stock_code, model_ver)))

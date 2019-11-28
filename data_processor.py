@@ -8,6 +8,7 @@ import re
 import json
 import FinanceDataReader as fdr
 from common.util import headers
+from time import sleep
 
 from bs4 import BeautifulSoup
 from selenium.webdriver import Chrome
@@ -90,22 +91,35 @@ def parse_page(code, page):
     return None
 
 
-def get_stock_foreign_gov_info(code_list, limit_num=100, save_date=None):
+def get_stock_foreign_gov_info(code_list, num=100, save_date=None):
     for code in code_list:
-        url = 'https://finance.daum.net/api/investor/days?page=1&perPage={limit_num}&symbolCode=A{code}&pagination=true'.format(code=code, limit_num=limit_num)
-        headers['Referer'] = 'http://finance.daum.net/quotes/A{code}'.format(code=code)
-        r = requests.get(url, headers=headers)
-        columns = ['date', 'foreignOwnShares', 'foreignOwnSharesRate', 'foreignStraightPurchaseVolume', 'institutionStraightPurchaseVolume', 'institutionCumulativeStraightPurchaseVolume']
-        data = json.loads(r.text)
-        df = pd.DataFrame(data['data'])
-        df.index = pd.to_datetime(df['date'])
-        df = df[columns]
-
+        done = True
+        page = 1
+        df = pd.DataFrame()
+        per_page = 100
+        while(done):
+            try:
+                if page * per_page > num:
+                    done = False
+                    per_page = num - ((page-1) * per_page)
+                url = "https://finance.daum.net/api/investor/days?page={page}&perPage={per_page}&symbolCode=A{code}&pagination=true".format(code=code, page=page, per_page=per_page)
+                headers['Referer'] = 'https://finance.daum.net/quotes/A{code}#influential_investors/home'.format(code=code)
+                r = requests.get(url, headers=headers)
+                columns = ['date', 'foreignOwnShares', 'foreignOwnSharesRate', 'foreignStraightPurchaseVolume', 'institutionStraightPurchaseVolume', 'institutionCumulativeStraightPurchaseVolume']
+                data = json.loads(r.text)
+                df_ = pd.DataFrame(data['data'])
+                df_.index = pd.to_datetime(df_['date'])
+                df_ = df_[columns]
+                df = pd.concat([df, df_])
+                page += 1
+                sleep(1)
+            except:
+                break
         # 크롤한 데이터 저장
         if not save_date:
-            path_dir = os.path.join(BASE_DIR, 'data/{}-crawling/fereign_institution/'.format(datetime.datetime.strftime(datetime.datetime.today(), '%Y-%m-%d')))
+            path_dir = os.path.join(BASE_DIR, 'data/{}-crawling/foreign_institution/'.format(datetime.datetime.strftime(datetime.datetime.today(), '%Y-%m-%d')))
         else:
-            path_dir = os.path.join(BASE_DIR, 'data/{}-crawling/fereign_institution/'.format(save_date))
+            path_dir = os.path.join(BASE_DIR, 'data/{}-crawling/foreign_institution/'.format(save_date))
         if not os.path.exists(path_dir):
             os.makedirs(path_dir)
         path = os.path.join(path_dir, '{code}.csv'.format(code=code))
@@ -210,6 +224,15 @@ def load_data(code_list, save_date):
         else:
             print("Fail to load technical #{code} stock info...".format(code=code))
             continue
+        # Load foreign_institution
+        path_dir = os.path.join(BASE_DIR, 'data/{}-crawling/foreign_institution/'.format(save_date))
+        if os.path.exists(os.path.join(path_dir, "{code}.csv".format(code=code))):
+            print("Success to load foreign_institution #{code} stock info...".format(code=code))
+            foreign_institution_df = pd.read_csv(os.path.join(path_dir, "{code}.csv".format(code=code)))
+            foreign_institution_df['date'] = foreign_institution_df['date'].apply(lambda x: x.split(" ")[0])
+            if not foreign_institution_df.empty:
+                df_ = pd.merge(df_, foreign_institution_df, on="date", how="left")
+
         df_['code'] = code
         df = pd.concat([df, df_])
     return df
@@ -220,7 +243,11 @@ def preprocess(data):
     windows = [5, 10, 20, 60, 120]
     for window in windows:
         prep_data['close_ma{}'.format(window)] = prep_data['close'].rolling(window).mean()
-        prep_data['volume_ma{}'.format(window)] = (prep_data['volume'].rolling(window).mean())
+        prep_data['volume_ma{}'.format(window)] = prep_data['volume'].rolling(window).mean()
+        prep_data['foreignOwnSharesRate_ma{}'.format(window)] = prep_data['foreignOwnSharesRate'].rolling(window).mean()
+        prep_data['foreignStraightPurchaseVolume_ma{}'.format(window)] = prep_data['foreignStraightPurchaseVolume'].rolling(window).mean()
+        prep_data['institutionStraightPurchaseVolume_ma{}'.format(window)] = prep_data['institutionStraightPurchaseVolume'].rolling(window).mean()
+
     return prep_data
 
 
@@ -294,4 +321,6 @@ if __name__ == "__main__":
     # historical_prices = dict()
     # historical_index_naver(index_cd, '2018-4-1', '2018-4-4')
     # print(historical_prices)
-    get_stock_foreign_gov_info(code_list=['035420'])
+    KOSPI = ["035420", "006800", "005930"]
+    # get_stock_foreign_gov_info(code_list=KOSPI, num=1000, save_date="2019-11-17")
+    df = load_data(code_list=['035420'], save_date="2019-11-17")
